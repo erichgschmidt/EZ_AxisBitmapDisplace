@@ -443,11 +443,11 @@ category:"EZ Tools"
             local pB = getVert m b
             local pC = getVert m c
 
-            local fn = safeNormalizePoint3 (cross (pB - pA) (pC - pA))
+            local faceNrm = safeNormalizePoint3 (cross (pB - pA) (pC - pA))
 
-            normals[a] = normals[a] + fn
-            normals[b] = normals[b] + fn
-            normals[c] = normals[c] + fn
+            normals[a] = normals[a] + faceNrm
+            normals[b] = normals[b] + faceNrm
+            normals[c] = normals[c] + faceNrm
         )
 
         for i = 1 to nv do
