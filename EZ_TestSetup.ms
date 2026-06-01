@@ -2,14 +2,12 @@
     EZ_TestSetup.ms
     Quick test rig for EZ Axis Bitmap Displace.
 
-    Run on a selected mesh. Applies:
-        - 4x UVW Map modifiers (planar per axis, channels 1-4)
-        - EZ Axis Bitmap Displace with bitmaps picked during setup
-        - Physical Material with the same bitmaps on diffuse so you
-          can see texture alignment alongside displacement
+    Assumes EZ Multi Planar UVW is already in the stack.
+    Run on a selected object that already has EZ Axis Bitmap Displace applied.
 
-    The modifier expects enough geometry to show displacement.
-    Add a TurboSmooth or Subdivide below this stack if needed.
+    - Prompts to pick 4 displacement bitmaps and loads them into the modifier
+    - Assigns a Physical Material with procedural maps so blending and
+      displacement are immediately readable without external textures
 */
 
 fn EZ_PickBitmap prompt =
@@ -25,11 +23,18 @@ fn EZ_PickBitmap prompt =
     result
 )
 
-fn EZ_MakeBitmapTex path =
+fn EZ_FindDisplaceMod obj =
 (
-    local tex = Bitmaptexture()
-    tex.filename = path
-    tex
+    local result = undefined
+    for i = 1 to obj.modifiers.count do
+    (
+        if (classof obj.modifiers[i]) == EZ_AxisBitmapDisplace do
+        (
+            result = obj.modifiers[i]
+            exit
+        )
+    )
+    result
 )
 
 fn EZ_ApplyTestSetup =
@@ -38,109 +43,68 @@ fn EZ_ApplyTestSetup =
 
     if obj == undefined then
     (
-        messageBox "Select a mesh object first." title:"EZ Test Setup"
+        messageBox "Select an object first." title:"EZ Test Setup"
         return undefined
     )
 
     -- -----------------------------------------------------------------------
-    -- Pick the 4 displacement bitmaps upfront
+    -- Find existing EZ Axis Bitmap Displace modifier on the object
     -- -----------------------------------------------------------------------
-    local pathX    = EZ_PickBitmap "Pick X Displacement Bitmap (Channel 1)"
-    local pathZ    = EZ_PickBitmap "Pick Z Displacement Bitmap (Channel 2)"
-    local pathYPos = EZ_PickBitmap "Pick Y+ Displacement Bitmap (Channel 3)"
-    local pathYNeg = EZ_PickBitmap "Pick Y- Displacement Bitmap (Channel 4)"
+    local dispMod = EZ_FindDisplaceMod obj
+
+    if dispMod == undefined then
+    (
+        messageBox "No EZ Axis Bitmap Displace modifier found on this object.\nApply it first, then run this script." title:"EZ Test Setup"
+        return undefined
+    )
 
     -- -----------------------------------------------------------------------
-    -- UVW Map: X axis planar -> channel 1
+    -- Pick displacement bitmaps and load into modifier
+    -- Cancelling any dialog skips that axis (leaves existing path untouched)
     -- -----------------------------------------------------------------------
-    local uvwX = UVWMap()
-    uvwX.maptype = 0
-    uvwX.axis    = 0
-    uvwX.channel = 1
-    uvwX.utile   = 1.0
-    uvwX.vtile   = 1.0
-    addModifier obj uvwX
-    uvwX.name = "UVW X (Ch1)"
+    local pathX    = EZ_PickBitmap "X Displacement Bitmap  (Channel 1 — skips if cancelled)"
+    local pathZ    = EZ_PickBitmap "Z Displacement Bitmap  (Channel 2 — skips if cancelled)"
+    local pathYPos = EZ_PickBitmap "Y+ Displacement Bitmap (Channel 3 — skips if cancelled)"
+    local pathYNeg = EZ_PickBitmap "Y- Displacement Bitmap (Channel 4 — skips if cancelled)"
+
+    if pathX    != undefined do ( dispMod.xBitmapPath    = pathX;    dispMod.useXBitmap    = true )
+    if pathZ    != undefined do ( dispMod.zBitmapPath    = pathZ;    dispMod.useZBitmap    = true )
+    if pathYPos != undefined do ( dispMod.yPosBitmapPath = pathYPos; dispMod.useYPosBitmap = true )
+    if pathYNeg != undefined do ( dispMod.yNegBitmapPath = pathYNeg; dispMod.useYNegBitmap = true )
 
     -- -----------------------------------------------------------------------
-    -- UVW Map: Z axis planar -> channel 2
-    -- -----------------------------------------------------------------------
-    local uvwZ = UVWMap()
-    uvwZ.maptype = 0
-    uvwZ.axis    = 2
-    uvwZ.channel = 2
-    uvwZ.utile   = 1.0
-    uvwZ.vtile   = 1.0
-    addModifier obj uvwZ
-    uvwZ.name = "UVW Z (Ch2)"
-
-    -- -----------------------------------------------------------------------
-    -- UVW Map: Y top planar -> channel 3
-    -- -----------------------------------------------------------------------
-    local uvwYPos = UVWMap()
-    uvwYPos.maptype = 0
-    uvwYPos.axis    = 1
-    uvwYPos.channel = 3
-    uvwYPos.utile   = 1.0
-    uvwYPos.vtile   = 1.0
-    addModifier obj uvwYPos
-    uvwYPos.name = "UVW Y+ (Ch3)"
-
-    -- -----------------------------------------------------------------------
-    -- UVW Map: Y bottom planar -> channel 4
-    -- -----------------------------------------------------------------------
-    local uvwYNeg = UVWMap()
-    uvwYNeg.maptype = 0
-    uvwYNeg.axis    = 1
-    uvwYNeg.channel = 4
-    uvwYNeg.utile   = 1.0
-    uvwYNeg.vtile   = 1.0
-    addModifier obj uvwYNeg
-    uvwYNeg.name = "UVW Y- (Ch4)"
-
-    -- -----------------------------------------------------------------------
-    -- EZ Axis Bitmap Displace with paths assigned
-    -- -----------------------------------------------------------------------
-    local dispMod = EZ_AxisBitmapDisplace()
-    addModifier obj dispMod
-    dispMod.name = "EZ Axis Bitmap Displace"
-
-    if pathX    != undefined do dispMod.xBitmapPath    = pathX
-    if pathZ    != undefined do dispMod.zBitmapPath    = pathZ
-    if pathYPos != undefined do dispMod.yPosBitmapPath = pathYPos
-    if pathYNeg != undefined do dispMod.yNegBitmapPath = pathYNeg
-
-    -- skipped bitmaps disable that axis
-    if pathX    == undefined do dispMod.useXBitmap    = false
-    if pathZ    == undefined do dispMod.useZBitmap    = false
-    if pathYPos == undefined do dispMod.useYPosBitmap = false
-    if pathYNeg == undefined do dispMod.useYNegBitmap = false
-
-    -- -----------------------------------------------------------------------
-    -- Physical Material with displacement bitmaps on diffuse
-    -- so texture alignment is visible alongside the displacement
+    -- Material
+    -- Base color: Checker so UV projection and blending seams are readable
+    -- Roughness: Noise so surface micro-variation reads in renders
+    -- Displacement is driven by the modifier, not the material
     -- -----------------------------------------------------------------------
     local mat = PhysicalMaterial()
     mat.name      = "EZ_TestMaterial"
-    mat.roughness = 0.7
+    mat.roughness = 0.65
     mat.metalness = 0.0
 
-    -- Use X bitmap as primary diffuse if available, else plain clay
-    if pathX != undefined then
-    (
-        local diffTex = EZ_MakeBitmapTex pathX
-        diffTex.coords.mapChannel = 1
-        mat.base_color_map = diffTex
-        mat.base_color_map_on = true
-    )
-    else
-    (
-        mat.base_color = color 210 200 185
-    )
+    -- Checker on base color — makes UV alignment and blend zones obvious
+    local checker = Checker()
+    checker.color1 = color 220 210 195
+    checker.color2 = color 80 70 60
+    checker.coords.mapChannel = 1
+    checker.coords.U_Tiling   = 4.0
+    checker.coords.V_Tiling   = 4.0
+    mat.base_color_map    = checker
+    mat.base_color_map_on = true
+
+    -- Noise on roughness — helps read surface curvature from displacement
+    local roughNoise = Noise()
+    roughNoise.color1   = color 100 100 100
+    roughNoise.color2   = color 200 200 200
+    roughNoise.size     = 15.0
+    roughNoise.coords.mapChannel = 1
+    mat.roughness_map    = roughNoise
+    mat.roughness_map_on = true
 
     obj.material = mat
 
-    messageBox ("Done.\n\nStack applied to: " + obj.name + "\n\nAdjust tiling on the UVW Map modifiers to match your bitmap scale.\nTweak amounts in EZ Axis Bitmap Displace.") title:"EZ Test Setup"
+    messageBox ("Done.\n\nBitmaps loaded into EZ Axis Bitmap Displace.\nMaterial assigned with Checker diffuse + Noise roughness.\n\nTweak amounts and tiling directly in the modifier panel.") title:"EZ Test Setup"
 )
 
 EZ_ApplyTestSetup()
