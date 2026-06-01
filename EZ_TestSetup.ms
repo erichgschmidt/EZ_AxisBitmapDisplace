@@ -46,38 +46,18 @@ fn EZ_ApplyTestSetup =
     )
 
     -- -----------------------------------------------------------------------
-    -- Material
-    -- Base color: Checker so UV projection and blending seams are readable
-    -- Roughness: Noise so surface micro-variation reads in renders
-    -- Displacement is driven by the modifier, not the material
+    -- Material: plain clay — neutral and bright so displacement silhouette
+    -- and surface detail read clearly without any texture distraction
     -- -----------------------------------------------------------------------
     local mat = PhysicalMaterial()
-    mat.name      = "EZ_TestMaterial"
-    mat.roughness = 0.65
-    mat.metalness = 0.0
-
-    -- Checker on base color — makes UV alignment and blend zones obvious
-    local checker = Checker()
-    checker.color1 = color 220 210 195
-    checker.color2 = color 80 70 60
-    checker.coords.mapChannel = 1
-    checker.coords.U_Tiling   = 4.0
-    checker.coords.V_Tiling   = 4.0
-    mat.base_color_map    = checker
-    mat.base_color_map_on = true
-
-    -- Noise on roughness — helps read surface curvature from displacement
-    local roughNoise = Noise()
-    roughNoise.color1   = color 100 100 100
-    roughNoise.color2   = color 200 200 200
-    roughNoise.size     = 15.0
-    roughNoise.coords.mapChannel = 1
-    mat.roughness_map    = roughNoise
-    mat.roughness_map_on = true
+    mat.name       = "EZ_TestMaterial"
+    mat.base_color = color 210 200 185
+    mat.roughness  = 0.7
+    mat.metalness  = 0.0
 
     obj.material = mat
 
-    messageBox ("Done.\n\nBitmaps loaded into EZ Axis Bitmap Displace.\nMaterial assigned with Checker diffuse + Noise roughness.\n\nTweak amounts and tiling directly in the modifier panel.") title:"EZ Test Setup"
+    messageBox ("Done.\n\nClay material assigned to: " + obj.name + "\n\nPick your displacement bitmaps in the EZ Axis Bitmap Displace modifier panel.") title:"EZ Test Setup"
 )
 
 EZ_ApplyTestSetup()
