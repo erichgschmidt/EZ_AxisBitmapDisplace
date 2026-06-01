@@ -10,19 +10,6 @@
       displacement are immediately readable without external textures
 */
 
-fn EZ_PickBitmap prompt =
-(
-    local result = undefined
-    try
-    (
-        result = getOpenFileName \
-            caption:prompt \
-            types:"Images (*.png;*.jpg;*.jpeg;*.tif;*.tiff;*.bmp;*.tga)|*.png;*.jpg;*.jpeg;*.tif;*.tiff;*.bmp;*.tga|All Files (*.*)|*.*|"
-    )
-    catch ( result = undefined )
-    result
-)
-
 fn EZ_FindDisplaceMod obj =
 (
     local result = undefined
@@ -57,20 +44,6 @@ fn EZ_ApplyTestSetup =
         messageBox "No EZ Axis Bitmap Displace modifier found on this object.\nApply it first, then run this script." title:"EZ Test Setup"
         return undefined
     )
-
-    -- -----------------------------------------------------------------------
-    -- Pick displacement bitmaps and load into modifier
-    -- Cancelling any dialog skips that axis (leaves existing path untouched)
-    -- -----------------------------------------------------------------------
-    local pathX    = EZ_PickBitmap "X Displacement Bitmap  (Channel 1 — skips if cancelled)"
-    local pathZ    = EZ_PickBitmap "Z Displacement Bitmap  (Channel 2 — skips if cancelled)"
-    local pathYPos = EZ_PickBitmap "Y+ Displacement Bitmap (Channel 3 — skips if cancelled)"
-    local pathYNeg = EZ_PickBitmap "Y- Displacement Bitmap (Channel 4 — skips if cancelled)"
-
-    if pathX    != undefined do ( dispMod.xBitmapPath    = pathX;    dispMod.useXBitmap    = true )
-    if pathZ    != undefined do ( dispMod.zBitmapPath    = pathZ;    dispMod.useZBitmap    = true )
-    if pathYPos != undefined do ( dispMod.yPosBitmapPath = pathYPos; dispMod.useYPosBitmap = true )
-    if pathYNeg != undefined do ( dispMod.yNegBitmapPath = pathYNeg; dispMod.useYNegBitmap = true )
 
     -- -----------------------------------------------------------------------
     -- Material
